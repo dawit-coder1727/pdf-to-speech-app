@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Upload PDF → get text + summary → listen with browser TTS." />
+    <meta name="theme-color" content="#0b1220" />
+
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/icon.svg" />
+
+    <title>PDF-to-Speech Pro — App</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              ink: "#0b1220",
+              panel: "#0f172a",
+              glow: "#7c3aed"
+            },
+            boxShadow: {
+              glow: "0 0 0 1px rgba(124,58,237,.35), 0 18px 60px rgba(124,58,237,.25)"
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      .premium-modal-backdrop {
+        background: radial-gradient(circle at top, rgba(124, 58, 237, 0.35), rgba(2, 6, 23, 0.9));
+        backdrop-filter: blur(6px);
+      }
+    </style>
+  </head>
+  <body class="h-full bg-ink text-slate-100">
+    <div class="min-h-full">
+      <header class="sticky top-0 z-20 border-b border-white/10 bg-ink/80 backdrop-blur">
+        <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+          <a href="/" class="flex items-center gap-2 font-semibold tracking-tight">
+            <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-glow/20 ring-1 ring-glow/40">P</span>
+            <span>PDF-to-Speech Pro</span>
+          </a>
+          <div class="flex items-center gap-2">
+            <a href="/" class="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/15 ring-1 ring-white/10">Home</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="mx-auto max-w-6xl px-4 py-10">
+        <div class="grid gap-6 lg:grid-cols-3">
+          <section class="lg:col-span-1 rounded-2xl bg-panel/60 ring-1 ring-white/10 shadow-glow p-6">
+            <h1 class="text-xl font-extrabold tracking-tight">Upload PDF</h1>
+            <p class="mt-2 text-sm text-slate-300">
+              Max 10MB. PDF only. We parse, summarize, then delete the upload.
+            </p>
+
+            <form id="uploadForm" class="mt-5 space-y-4">
+              <label class="block">
+                <span class="text-sm font-semibold text-slate-200">Choose a PDF</span>
+                <input
+                  id="pdfInput"
+                  name="pdf"
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  class="mt-2 block w-full rounded-xl bg-white/5 ring-1 ring-white/10 px-3 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-sm file:font-semibold hover:file:bg-white/15"
+                  required
+                />
+              </label>
+
+              <label class="block">
+                <span class="text-sm font-semibold text-slate-200">Summary length</span>
+                <select id="summaryLen" class="mt-2 block w-full rounded-xl bg-white/5 ring-1 ring-white/10 px-3 py-2 text-sm">
+                  <option value="4">Short (4 sentences)</option>
+                  <option value="6" selected>Medium (6 sentences)</option>
+                  <option value="9">Long (9 sentences)</option>
+                </select>
+              </label>
+
+              <button
+                id="uploadBtn"
+                type="submit"
+                class="w-full rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-3 text-sm font-semibold shadow-glow hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Extract + Summarize
+              </button>
+              <p id="status" class="text-sm text-slate-300"></p>
+            </form>
+
+            <div class="mt-6 rounded-xl bg-white/5 ring-1 ring-white/10 p-4">
+              <p class="text-xs text-slate-400">
+                Tip for Exit Exam: upload past exam PDFs, listen to the summary first, then read the full text for details.
+              </p>
+            </div>
+          </section>
+          <div class="rounded-2xl bg-panel/60 ring-1 ring-white/10 shadow-glow p-6 mt-10 text-center" style="border: 2px solid #ffcc00; background-color: #0b1a2c;">
+            <h2 class="text-3xl font-extrabold tracking-tight" style="color: #ffcc00; margin-bottom: 10px;">Upgrade to Premium</h2>
+            <p class="text-slate-300 text-lg mb-6">Unlock unlimited PDF uploads, AI summaries, and high-quality voice exports!</p>
+            
+            <div style="background-color: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin: 15px 0;">
+                <p class="text-slate-200">💰 Monthly Plan: <strong>50 ETB</strong></p>
+                <p class="text-slate-200">📱 Telebirr: <code>09xxxxxxxx</code></p>
+                <p class="text-slate-200">📩 Send screenshot to: <a href="https://t.me/Dawit_Coder1727" style="color: #ffcc00; text-decoration: none; font-weight: bold;">@Dawit_Admin</a></p>
+            </div>
+        
+            <div class="space-y-3">
+              <input
+                id="telebirrPhone"
+                type="text"
+                placeholder="Telebirr phone (optional)"
+                class="w-full rounded-xl bg-white/5 ring-1 ring-white/10 px-3 py-2 text-sm"
+              />
+              <button
+                id="payPremiumBtn"
+                type="button"
+                style="background: linear-gradient(135deg, #ffcc00 0%, #ff9900 100%); color: #000; border: none; padding: 15px 30px; border-radius: 30px; font-size: 1.05rem; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; box-shadow: 0 4px 15px rgba(255, 204, 0, 0.4);"
+              >
+                  🌟 Pay 50 ETB with Telebirr
+              </button>
+              <button
+                id="verifyPremiumBtn"
+                type="button"
+                class="w-full rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold ring-1 ring-white/10 hover:bg-white/15"
+              >
+                Verify Payment (Mock)
+              </button>
+              <p id="premiumStatus" class="text-sm text-slate-300"></p>
+            </div>
+        </div>
+          <section class="lg:col-span-2 space-y-6">
+            <div class="rounded-2xl bg-panel/60 ring-1 ring-white/10 p-6">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 class="text-lg font-bold">Summary</h2>
+                <div class="flex flex-wrap gap-2">
+                  <button id="playPremiumVoice" disabled class="rounded-xl bg-amber-500/30 px-4 py-2 text-sm font-semibold ring-1 ring-amber-400/30 hover:bg-amber-500/40 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Play Premium Voice
+                  </button>
+                  <button id="speakSummary" class="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold ring-1 ring-white/10 hover:bg-white/15">
+                    Speak Summary
+                  </button>
+                  <button id="copySummary" class="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold ring-1 ring-white/10 hover:bg-white/15">
+                    Copy Text
+                  </button>
+                  <button id="downloadAudioSummary" class="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold ring-1 ring-white/10 hover:bg-white/15">
+                    Download Audio
+                  </button>
+                </div>
+              </div>
+              <textarea id="summaryOut" class="mt-4 h-40 w-full resize-y rounded-xl bg-white/5 ring-1 ring-white/10 p-4 text-sm text-slate-100" placeholder="Your summary will appear here..." readonly></textarea>
+              <p id="audioNote" class="mt-2 text-xs text-slate-400 hidden"></p>
+            </div>
+
+            <div class="rounded-2xl bg-panel/60 ring-1 ring-white/10 p-6">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 class="text-lg font-bold">Full Text</h2>
+                <div class="flex flex-wrap gap-2">
+                  <button id="speakFull" class="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold ring-1 ring-white/10 hover:bg-white/15">
+                    Speak Full Text
+                  </button>
+                  <button id="copyFull" class="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold ring-1 ring-white/10 hover:bg-white/15">
+                    Copy Text
+                  </button>
+                  <button id="downloadAudioFull" class="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold ring-1 ring-white/10 hover:bg-white/15">
+                    Download Audio
+                  </button>
+                </div>
+              </div>
+              <textarea id="textOut" class="mt-4 h-72 w-full resize-y rounded-xl bg-white/5 ring-1 ring-white/10 p-4 text-sm text-slate-100" placeholder="Extracted text will appear here..." readonly></textarea>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <div id="premiumModal" class="fixed inset-0 z-50 hidden premium-modal-backdrop items-center justify-center px-4">
+      <div class="w-full max-w-lg rounded-3xl border border-amber-300/40 bg-slate-900/95 p-6 shadow-2xl">
+        <div class="mb-4 flex items-center justify-between">
+          <h3 class="text-2xl font-extrabold text-amber-300">Clear Voice Premium</h3>
+          <button id="closePremiumModal" class="rounded-lg bg-white/10 px-3 py-1 text-sm hover:bg-white/20">Close</button>
+        </div>
+        <p class="text-slate-200">Unlock natural Amharic clear voice (`am-ET-Wavenet-B`) with a one-time premium payment.</p>
+        <div class="mt-4 space-y-2 rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
+          <p class="text-sm text-slate-100">💰 Amount: <strong>50 ETB</strong></p>
+          <p class="text-sm text-slate-100">📱 Telebirr Number: <code>09xxxxxxxx</code></p>
+          <p class="text-sm text-slate-100">🧾 Include your phone and transaction screenshot.</p>
+          <p class="text-sm text-slate-100">📩 Contact: <a href="https://t.me/Dawit_Coder1727" class="font-semibold text-amber-300 hover:text-amber-200">@Dawit_Admin</a></p>
+        </div>
+        <div class="mt-5 grid gap-2 sm:grid-cols-2">
+          <button id="modalPayNowBtn" class="rounded-xl bg-gradient-to-r from-amber-300 to-orange-400 px-4 py-2 font-bold text-slate-900 hover:brightness-110">
+            Pay with Telebirr
+          </button>
+          <button id="modalVerifyBtn" class="rounded-xl bg-white/10 px-4 py-2 font-semibold ring-1 ring-white/15 hover:bg-white/20">
+            Verify Payment
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
+

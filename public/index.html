@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="PDF-to-Speech & Summary for Ethiopian students preparing for the Exit Exam." />
+    <meta name="theme-color" content="#0b1220" />
+
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/icon.svg" />
+
+    <title>PDF-to-Speech Pro — Exit Exam Booster</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              ink: "#0b1220",
+              panel: "#0f172a",
+              glow: "#7c3aed"
+            },
+            boxShadow: {
+              glow: "0 0 0 1px rgba(124,58,237,.35), 0 18px 60px rgba(124,58,237,.25)"
+            }
+          }
+        }
+      };
+    </script>
+  </head>
+  <body class="h-full bg-ink text-slate-100">
+    <div class="min-h-full">
+      <header class="sticky top-0 z-20 border-b border-white/10 bg-ink/80 backdrop-blur">
+        <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+          <a href="/" class="flex items-center gap-2 font-semibold tracking-tight">
+            <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-glow/20 ring-1 ring-glow/40">P</span>
+            <span>PDF-to-Speech Pro</span>
+          </a>
+          <nav class="flex items-center gap-2">
+            <a href="/app.html" class="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/15 ring-1 ring-white/10">
+              Open App
+            </a>
+          </nav>
+        </div>
+      </header>
+
+      <main>
+        <section class="relative overflow-hidden">
+          <div class="absolute inset-0 opacity-60">
+            <div class="absolute -left-24 -top-24 h-80 w-80 rounded-full bg-glow/30 blur-3xl"></div>
+            <div class="absolute -right-24 top-40 h-80 w-80 rounded-full bg-fuchsia-500/20 blur-3xl"></div>
+          </div>
+          <div class="relative mx-auto max-w-6xl px-4 py-14">
+            <div class="grid gap-10 md:grid-cols-2 md:items-center">
+              <div>
+                <p class="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-xs font-semibold ring-1 ring-white/10">
+                  <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+                  Built for Ethiopian Exit Exam prep
+                </p>
+                <h1 class="mt-4 text-4xl font-extrabold tracking-tight md:text-5xl">
+                  Turn PDFs into
+                  <span class="text-transparent bg-clip-text bg-gradient-to-r from-violet-300 to-fuchsia-300">speech</span>
+                  and smart summaries.
+                </h1>
+                <p class="mt-4 text-slate-300 leading-relaxed">
+                  Upload lecture notes, handouts, or past exams. Get clean text + a short summary, then listen instantly using your browser’s
+                  Text-to-Speech. Perfect for revision while commuting or doing chores.
+                </p>
+                <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+                  <a href="/app.html" class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-3 text-sm font-semibold shadow-glow hover:brightness-110">
+                    Start Free
+                  </a>
+                  <a href="#benefits" class="inline-flex items-center justify-center rounded-xl bg-white/10 px-5 py-3 text-sm font-semibold ring-1 ring-white/10 hover:bg-white/15">
+                    Why it helps
+                  </a>
+                </div>
+                <p class="mt-4 text-xs text-slate-400">
+                  Privacy-first: PDFs are processed and deleted immediately after parsing.
+                </p>
+              </div>
+
+              <div class="rounded-2xl bg-panel/60 ring-1 ring-white/10 shadow-glow p-6">
+                <div class="flex items-center justify-between">
+                  <h2 class="text-sm font-semibold text-slate-200">Exit Exam Booster</h2>
+                  <span class="text-xs text-slate-400">Mobile friendly • PWA-ready</span>
+                </div>
+                <div class="mt-5 space-y-4 text-sm text-slate-300">
+                  <div class="rounded-xl bg-white/5 ring-1 ring-white/10 p-4">
+                    <p class="font-semibold text-slate-100">Summaries that save time</p>
+                    <p class="mt-1">Skim key sentences fast, then listen to reinforce memory and pronunciation.</p>
+                  </div>
+                  <div class="rounded-xl bg-white/5 ring-1 ring-white/10 p-4">
+                    <p class="font-semibold text-slate-100">Study anywhere</p>
+                    <p class="mt-1">Use the browser’s voice engine for instant playback without waiting for server audio.</p>
+                  </div>
+                  <div class="rounded-xl bg-white/5 ring-1 ring-white/10 p-4">
+                    <p class="font-semibold text-slate-100">Secure by default</p>
+                    <p class="mt-1">Rate-limited API, secure headers, 10MB upload limit, and PDF validation.</p>
+                  </div>
+                </div>
+                <div class="mt-6">
+                  <a href="/app.html" class="block w-full rounded-xl bg-white/10 px-5 py-3 text-center text-sm font-semibold ring-1 ring-white/10 hover:bg-white/15">
+                    Open the App →
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="benefits" class="mx-auto max-w-6xl px-4 pb-16">
+          <div class="grid gap-6 md:grid-cols-3">
+            <div class="rounded-2xl bg-white/5 ring-1 ring-white/10 p-6">
+              <h3 class="text-lg font-bold">For Exit Exam focus</h3>
+              <p class="mt-2 text-sm text-slate-300">
+                Convert long PDFs into clear text and a short summary to guide what to revise first.
+              </p>
+            </div>
+            <div class="rounded-2xl bg-white/5 ring-1 ring-white/10 p-6">
+              <h3 class="text-lg font-bold">For busy students</h3>
+              <p class="mt-2 text-sm text-slate-300">
+                Listen while walking, riding a bus, or helping at home. Use your phone as a study companion.
+              </p>
+            </div>
+            <div class="rounded-2xl bg-white/5 ring-1 ring-white/10 p-6">
+              <h3 class="text-lg font-bold">For better retention</h3>
+              <p class="mt-2 text-sm text-slate-300">
+                Mixing reading + listening improves recall. Highlight key concepts, then replay them.
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="border-t border-white/10">
+        <div class="mx-auto max-w-6xl px-4 py-10 text-sm text-slate-400 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p>© <span id="y"></span> PDF-to-Speech Pro</p>
+          <p class="text-xs">Built for performance, privacy, and Ethiopian students.</p>
+        </div>
+      </footer>
+    </div>
+
+    <script>
+      document.getElementById("y").textContent = new Date().getFullYear();
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+      }
+    </script>
+  </body>
+</html>
+

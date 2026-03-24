@@ -1,0 +1,19 @@
+{
+  "name": "PDF-to-Speech Pro",
+  "short_name": "PDF Speech",
+  "start_url": "/app.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "description": "Upload PDF, get summary, listen via browser Text-to-Speech.",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

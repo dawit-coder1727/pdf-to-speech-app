@@ -1,0 +1,23 @@
+{
+  "name": "pdf-to-audio-pro",
+  "version": "1.0.0",
+  "description": "PDF-to-Speech & Summary Micro-SaaS (Express + Vanilla JS + Tailwind + Web Speech API)",
+  "main": "app.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node --watch app.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@google-cloud/text-to-speech": "^6.4.0",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^7.1.0",
+    "mongoose": "^8.2.2",
+    "multer": "^1.4.5-lts.1",
+    "pdf-parse": "^1.1.1"
+  }
+}
