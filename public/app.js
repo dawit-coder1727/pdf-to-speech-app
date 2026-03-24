@@ -1,10 +1,18 @@
 const $ = (id) => document.getElementById(id);
 
+const STORAGE_KEYS = {
+  premiumUnlocked: "premiumUnlocked",
+  freeUseCount: "freeUseCount"
+};
+
+const FREE_USE_LIMIT = 1;
+
 const uploadForm = $("uploadForm");
 const pdfInput = $("pdfInput");
 const summaryLen = $("summaryLen");
 const uploadBtn = $("uploadBtn");
 const statusEl = $("status");
+const appShell = $("appShell");
 
 const summaryOut = $("summaryOut");
 const textOut = $("textOut");
@@ -27,9 +35,18 @@ const premiumModal = $("premiumModal");
 const closePremiumModalBtn = $("closePremiumModal");
 const modalPayNowBtn = $("modalPayNowBtn");
 const modalVerifyBtn = $("modalVerifyBtn");
+const modalPhoneInput = $("modalPhoneInput");
+const modalTxIdInput = $("modalTxIdInput");
+const ttsProgressWrap = $("ttsProgressWrap");
+const ttsProgressBar = $("ttsProgressBar");
+const ttsProgressLabel = $("ttsProgressLabel");
+const ttsProgressPercent = $("ttsProgressPercent");
 
 let currentTransactionId = "";
-let premiumUnlocked = false;
+let premiumUnlocked = localStorage.getItem(STORAGE_KEYS.premiumUnlocked) === "true";
+let freeUseCount = Number(localStorage.getItem(STORAGE_KEYS.freeUseCount) || "0");
+let isReading = false;
+let activeUtterance = null;
 
 function setStatus(msg, kind = "info") {
   statusEl.textContent = msg || "";
@@ -75,6 +92,12 @@ async function copyText(text) {
 function stopSpeaking() {
   try {
     window.speechSynthesis.cancel();
+    isReading = false;
+    activeUtterance = null;
+    ttsProgressWrap?.classList.add("hidden");
+    ttsProgressBar.style.width = "0%";
+    ttsProgressPercent.textContent = "0%";
+    playPremiumVoiceBtn.textContent = getPlayButtonText();
   } catch (_) {}
 }
 
@@ -111,9 +134,21 @@ function setPremiumStatus(msg, kind = "info") {
         : "text-sm text-slate-300";
 }
 
+function persistFreemiumState() {
+  localStorage.setItem(STORAGE_KEYS.freeUseCount, String(freeUseCount));
+  localStorage.setItem(STORAGE_KEYS.premiumUnlocked, String(premiumUnlocked));
+}
+
+function getPlayButtonText() {
+  if (isReading) return "Pause";
+  if (premiumUnlocked) return "Play Clear Voice";
+  if (freeUseCount >= FREE_USE_LIMIT) return "Clear Voice Locked";
+  return "Play Clear Voice (1 Free)";
+}
+
 function updatePremiumUi() {
   playPremiumVoiceBtn.disabled = false;
-  playPremiumVoiceBtn.textContent = premiumUnlocked ? "Play Clear Voice" : "Play Clear Voice (Premium)";
+  playPremiumVoiceBtn.textContent = getPlayButtonText();
 }
 
 function showPremiumModal() {
@@ -124,6 +159,81 @@ function showPremiumModal() {
 function hidePremiumModal() {
   premiumModal?.classList.add("hidden");
   premiumModal?.classList.remove("flex");
+}
+
+function getPreferredAmharicVoice() {
+  const voices = window.speechSynthesis?.getVoices?.() || [];
+  const preferredNames = [
+    "Microsoft Abeo Online (Natural) - Amharic",
+    "Microsoft Asrat"
+  ];
+
+  for (const preferred of preferredNames) {
+    const matched = voices.find((voice) => voice.name.includes(preferred));
+    if (matched) return matched;
+  }
+
+  return voices.find((voice) => voice.lang?.toLowerCase().startsWith("am")) || null;
+}
+
+function startReadingWithProgress(text) {
+  if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+    throw new Error("This browser does not support speech synthesis.");
+  }
+
+  const content = String(text || "").trim();
+  if (!content) throw new Error("No text available to read.");
+
+  const utterance = new SpeechSynthesisUtterance(content);
+  const selectedVoice = getPreferredAmharicVoice();
+  if (selectedVoice) {
+    utterance.voice = selectedVoice;
+    utterance.lang = selectedVoice.lang || "am-ET";
+  } else {
+    utterance.lang = "am-ET";
+  }
+
+  utterance.rate = 0.9;
+  utterance.pitch = 1;
+  utterance.volume = 1;
+
+  utterance.onstart = () => {
+    isReading = true;
+    activeUtterance = utterance;
+    updatePremiumUi();
+    ttsProgressWrap?.classList.remove("hidden");
+    ttsProgressLabel.textContent = "Reading...";
+    ttsProgressBar.style.width = "0%";
+    ttsProgressPercent.textContent = "0%";
+  };
+
+  utterance.onboundary = (event) => {
+    const idx = Number(event.charIndex || 0);
+    const pct = Math.max(0, Math.min(100, Math.round((idx / content.length) * 100)));
+    ttsProgressBar.style.width = `${pct}%`;
+    ttsProgressPercent.textContent = `${pct}%`;
+  };
+
+  utterance.onend = () => {
+    isReading = false;
+    activeUtterance = null;
+    ttsProgressLabel.textContent = "Completed";
+    ttsProgressBar.style.width = "100%";
+    ttsProgressPercent.textContent = "100%";
+    setTimeout(() => ttsProgressWrap?.classList.add("hidden"), 900);
+    updatePremiumUi();
+  };
+
+  utterance.onerror = () => {
+    isReading = false;
+    activeUtterance = null;
+    ttsProgressWrap?.classList.add("hidden");
+    updatePremiumUi();
+    setPremiumStatus("Playback failed. Try again.", "error");
+  };
+
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
 }
 
 async function parsePdf(file) {
@@ -202,6 +312,7 @@ uploadForm?.addEventListener("submit", async (e) => {
 
   setStatus("Uploading and extracting…");
   uploadBtn.disabled = true;
+  uploadBtn.textContent = "Extracting...";
   stopSpeaking();
 
   try {
@@ -219,6 +330,7 @@ uploadForm?.addEventListener("submit", async (e) => {
     setStatus(err?.message || "Failed to process PDF.", "error");
   } finally {
     uploadBtn.disabled = false;
+    uploadBtn.textContent = "Extract + Summarize";
   }
 });
 
@@ -250,15 +362,17 @@ payPremiumBtn?.addEventListener("click", async () => {
 });
 
 verifyPremiumBtn?.addEventListener("click", async () => {
-  if (!currentTransactionId) {
-    setPremiumStatus("Start payment first to get a transaction ID.", "error");
+  const txInput = String(modalTxIdInput?.value || "").trim();
+  if (!currentTransactionId && !txInput) {
+    setPremiumStatus("Start payment first or enter a transaction ID.", "error");
     return;
   }
 
   setPremiumStatus("Verifying Telebirr payment...");
   try {
-    await verifyTelebirrPayment(currentTransactionId);
+    await verifyTelebirrPayment(txInput || currentTransactionId);
     premiumUnlocked = true;
+    persistFreemiumState();
     updatePremiumUi();
     hidePremiumModal();
     setPremiumStatus("Payment verified. Premium voice unlocked!", "success");
@@ -270,7 +384,12 @@ verifyPremiumBtn?.addEventListener("click", async () => {
 });
 
 playPremiumVoiceBtn?.addEventListener("click", async () => {
-  if (!premiumUnlocked) {
+  if (isReading) {
+    stopSpeaking();
+    return;
+  }
+
+  if (!premiumUnlocked && freeUseCount >= FREE_USE_LIMIT) {
     showPremiumModal();
     return;
   }
@@ -281,14 +400,22 @@ playPremiumVoiceBtn?.addEventListener("click", async () => {
     return;
   }
 
-  setPremiumStatus("Generating premium Amharic voice...");
+  setPremiumStatus("Preparing natural Amharic voice...");
   try {
-    const audioUrl = await requestPremiumAudio(text, "am-ET");
-    const player = new Audio(audioUrl);
-    await player.play();
-    setPremiumStatus("Playing premium voice.", "success");
+    startReadingWithProgress(text);
+    if (!premiumUnlocked) {
+      freeUseCount += 1;
+      persistFreemiumState();
+    }
+    setPremiumStatus(
+      premiumUnlocked
+        ? "Playing premium clear voice."
+        : `Free use consumed (${freeUseCount}/${FREE_USE_LIMIT}).`,
+      "success"
+    );
+    updatePremiumUi();
   } catch (err) {
-    setPremiumStatus(err?.message || "Premium playback failed.", "error");
+    setPremiumStatus(err?.message || "Playback failed.", "error");
   }
 });
 
@@ -298,6 +425,14 @@ premiumModal?.addEventListener("click", (e) => {
 });
 modalPayNowBtn?.addEventListener("click", () => payPremiumBtn?.click());
 modalVerifyBtn?.addEventListener("click", () => verifyPremiumBtn?.click());
+modalPhoneInput?.addEventListener("input", () => {
+  telebirrPhoneInput.value = modalPhoneInput.value;
+});
+
+window.addEventListener("load", () => {
+  appShell.classList.add("welcome-animate");
+  appShell.classList.remove("opacity-0");
+});
 
 updatePremiumUi();
 

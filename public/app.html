@@ -30,6 +30,21 @@
       };
     </script>
     <style>
+      .welcome-animate {
+        animation: welcomeFade 700ms ease-out both;
+      }
+
+      @keyframes welcomeFade {
+        from {
+          opacity: 0;
+          transform: translateY(10px) scale(0.98);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
       .premium-modal-backdrop {
         background: radial-gradient(circle at top, rgba(124, 58, 237, 0.35), rgba(2, 6, 23, 0.9));
         backdrop-filter: blur(6px);
@@ -37,7 +52,7 @@
     </style>
   </head>
   <body class="h-full bg-ink text-slate-100">
-    <div class="min-h-full">
+    <div id="appShell" class="min-h-full opacity-0">
       <header class="sticky top-0 z-20 border-b border-white/10 bg-ink/80 backdrop-blur">
         <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <a href="/" class="flex items-center gap-2 font-semibold tracking-tight">
@@ -57,6 +72,9 @@
             <p class="mt-2 text-sm text-slate-300">
               Max 10MB. PDF only. We parse, summarize, then delete the upload.
             </p>
+            <div class="mt-3 rounded-xl bg-violet-500/10 px-3 py-2 text-xs text-violet-200 ring-1 ring-violet-300/20">
+              Welcome! You can test Amharic Clear Voice once for free.
+            </div>
 
             <form id="uploadForm" class="mt-5 space-y-4">
               <label class="block">
@@ -107,10 +125,10 @@
             </div>
         
             <div class="space-y-3">
-              <input
+                <input
                 id="telebirrPhone"
                 type="text"
-                placeholder="Telebirr phone (optional)"
+                  placeholder="Telebirr phone (for payment)"
                 class="w-full rounded-xl bg-white/5 ring-1 ring-white/10 px-3 py-2 text-sm"
               />
               <button
@@ -150,6 +168,15 @@
                 </div>
               </div>
               <textarea id="summaryOut" class="mt-4 h-40 w-full resize-y rounded-xl bg-white/5 ring-1 ring-white/10 p-4 text-sm text-slate-100" placeholder="Your summary will appear here..." readonly></textarea>
+              <div id="ttsProgressWrap" class="mt-3 hidden">
+                <div class="mb-1 flex items-center justify-between text-xs text-slate-300">
+                  <span id="ttsProgressLabel">Reading...</span>
+                  <span id="ttsProgressPercent">0%</span>
+                </div>
+                <div class="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                  <div id="ttsProgressBar" class="h-full w-0 rounded-full bg-gradient-to-r from-violet-400 via-fuchsia-400 to-amber-300 transition-all"></div>
+                </div>
+              </div>
               <p id="audioNote" class="mt-2 text-xs text-slate-400 hidden"></p>
             </div>
 
@@ -176,20 +203,22 @@
     </div>
 
     <div id="premiumModal" class="fixed inset-0 z-50 hidden premium-modal-backdrop items-center justify-center px-4">
-      <div class="w-full max-w-lg rounded-3xl border border-amber-300/40 bg-slate-900/95 p-6 shadow-2xl">
+      <div class="w-full max-w-xl rounded-3xl border border-violet-300/40 bg-slate-900/95 p-6 shadow-2xl ring-1 ring-violet-300/20">
         <div class="mb-4 flex items-center justify-between">
-          <h3 class="text-2xl font-extrabold text-amber-300">Clear Voice Premium</h3>
+          <h3 class="text-2xl font-extrabold text-violet-200">Unlock Premium Clear Voice</h3>
           <button id="closePremiumModal" class="rounded-lg bg-white/10 px-3 py-1 text-sm hover:bg-white/20">Close</button>
         </div>
-        <p class="text-slate-200">Unlock natural Amharic clear voice (`am-ET-Wavenet-B`) with a one-time premium payment.</p>
-        <div class="mt-4 space-y-2 rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
-          <p class="text-sm text-slate-100">💰 Amount: <strong>50 ETB</strong></p>
-          <p class="text-sm text-slate-100">📱 Telebirr Number: <code>09xxxxxxxx</code></p>
-          <p class="text-sm text-slate-100">🧾 Include your phone and transaction screenshot.</p>
-          <p class="text-sm text-slate-100">📩 Contact: <a href="https://t.me/Dawit_Coder1727" class="font-semibold text-amber-300 hover:text-amber-200">@Dawit_Admin</a></p>
+        <p class="text-slate-200">Your one free clear-voice use is finished. Upgrade now for unlimited Microsoft Edge Natural Amharic voice.</p>
+        <div class="mt-4 space-y-3 rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
+          <p class="text-sm text-slate-100">1) Pay <strong>50 ETB</strong> to Telebirr <code>09xxxxxxxx</code></p>
+          <p class="text-sm text-slate-100">2) Enter your phone and transaction ID below.</p>
+          <p class="text-sm text-slate-100">3) Tap verify to unlock instantly (mock flow).</p>
+          <input id="modalPhoneInput" type="text" placeholder="Your phone (09xxxxxxxx)" class="w-full rounded-xl bg-white/5 ring-1 ring-white/10 px-3 py-2 text-sm" />
+          <input id="modalTxIdInput" type="text" placeholder="Telebirr transaction ID" class="w-full rounded-xl bg-white/5 ring-1 ring-white/10 px-3 py-2 text-sm" />
+          <p class="text-xs text-slate-300">Need help? <a href="https://t.me/Dawit_Coder1727" class="font-semibold text-violet-300 hover:text-violet-200">@Dawit_Admin</a></p>
         </div>
         <div class="mt-5 grid gap-2 sm:grid-cols-2">
-          <button id="modalPayNowBtn" class="rounded-xl bg-gradient-to-r from-amber-300 to-orange-400 px-4 py-2 font-bold text-slate-900 hover:brightness-110">
+          <button id="modalPayNowBtn" class="rounded-xl bg-gradient-to-r from-violet-300 to-fuchsia-400 px-4 py-2 font-bold text-slate-900 hover:brightness-110">
             Pay with Telebirr
           </button>
           <button id="modalVerifyBtn" class="rounded-xl bg-white/10 px-4 py-2 font-semibold ring-1 ring-white/15 hover:bg-white/20">
