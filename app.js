@@ -10,6 +10,7 @@ const synthesizeRoutes = require("./routes/synthesizeRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 
 const app = express();
+const AMHARIC_PARSE_ERROR = "አማርኛውን ማንበብ አልቻልኩም፣ እባክዎ ሌላ ፒዲኤፍ ይሞክሩ";
 
 const uploadLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000,
@@ -112,6 +113,43 @@ function normalizeAmharicText(raw) {
     .trim();
 }
 
+function stripUnreadableArtifacts(raw) {
+  return String(raw || "")
+    .replace(/[.]{2,}/g, " ")
+    .replace(/[•·▪■□]+/g, " ")
+    .replace(/[^\S\r\n]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function hasReadableText(text) {
+  const normalized = String(text || "").trim();
+  if (!normalized) return false;
+  const withoutDots = normalized.replace(/[.\s]/g, "");
+  if (withoutDots.length < 8) return false;
+  const hasAmharicOrAsciiWord = /[\u1200-\u137F]{2,}|[A-Za-z]{3,}/.test(normalized);
+  return hasAmharicOrAsciiWord;
+}
+
+async function extractPdfText(buffer) {
+  const parsed = await pdfParse(buffer, {
+    max: 0,
+    pagerender: async (pageData) => {
+      const textContent = await pageData.getTextContent({ normalizeWhitespace: true });
+      const pageText = (textContent.items || [])
+        .map((item) => item.str || "")
+        .join(" ");
+      return `${pageText}\n`;
+    }
+  });
+
+  const mergedText = parsed.text || "";
+  return {
+    parsed,
+    text: stripUnreadableArtifacts(normalizeAmharicText(cleanText(mergedText)))
+  };
+}
+
 function splitSentences(text) {
   const t = cleanText(text);
   if (!t) return [];
@@ -181,8 +219,10 @@ app.post("/api/parse", upload.single("pdf"), async (req, res) => {
 
   try {
     const data = await fs.readFile(req.file.path);
-    const parsed = await pdfParse(data, { max: 0 });
-    const text = normalizeAmharicText(cleanText(parsed.text));
+    const { parsed, text } = await extractPdfText(data);
+    if (!hasReadableText(text)) {
+      return res.status(422).json({ error: AMHARIC_PARSE_ERROR });
+    }
     
     const maxSentencesRaw = Number(req.query?.sentences ?? 6);
     const maxSentences = Number.isFinite(maxSentencesRaw)
@@ -190,6 +230,7 @@ app.post("/api/parse", upload.single("pdf"), async (req, res) => {
       : 6;
     
     const summary = summarize(text, { maxSentences });
+    const safeSummary = hasReadableText(summary) ? summary : text.slice(0, 1200);
 
     // --- MONGODB SAVE ---
     // ዳታውን ወደ MongoDB እንመዘግባለን
@@ -205,7 +246,7 @@ app.post("/api/parse", upload.single("pdf"), async (req, res) => {
       bytes: req.file.size,
       pages: parsed.numpages || null,
       text,
-      summary
+      summary: safeSummary
     });
   } catch (e) {
     console.error(e);

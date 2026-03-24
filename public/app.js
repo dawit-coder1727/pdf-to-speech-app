@@ -47,6 +47,7 @@ let premiumUnlocked = localStorage.getItem(STORAGE_KEYS.premiumUnlocked) === "tr
 let freeUseCount = Number(localStorage.getItem(STORAGE_KEYS.freeUseCount) || "0");
 let isReading = false;
 let activeUtterance = null;
+const AMHARIC_READ_ERROR = "አማርኛውን ማንበብ አልቻልኩም፣ እባክዎ ሌላ ፒዲኤፍ ይሞክሩ";
 
 function setStatus(msg, kind = "info") {
   statusEl.textContent = msg || "";
@@ -104,7 +105,10 @@ function stopSpeaking() {
 function speak(text) {
   stopSpeaking();
   const t = String(text || "").trim();
-  if (!t) return;
+  if (!hasReadableSpeechText(t)) {
+    setStatus(AMHARIC_READ_ERROR, "error");
+    return;
+  }
   if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
     alert("Your browser does not support Text-to-Speech.");
     return;
@@ -116,6 +120,18 @@ function speak(text) {
   utt.volume = 1;
 
   window.speechSynthesis.speak(utt);
+}
+
+function hasReadableSpeechText(text) {
+  const normalized = String(text || "")
+    .replace(/[.]{2,}/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized) return false;
+  const compact = normalized.replace(/[.\s]/g, "");
+  if (compact.length < 8) return false;
+  return /[\u1200-\u137F]{2,}|[A-Za-z]{3,}/.test(normalized);
 }
 
 function showAudioDownloadNote() {
@@ -182,7 +198,9 @@ function startReadingWithProgress(text) {
   }
 
   const content = String(text || "").trim();
-  if (!content) throw new Error("No text available to read.");
+  if (!hasReadableSpeechText(content)) {
+    throw new Error(AMHARIC_READ_ERROR);
+  }
 
   const utterance = new SpeechSynthesisUtterance(content);
   const selectedVoice = getPreferredAmharicVoice();
@@ -319,6 +337,10 @@ uploadForm?.addEventListener("submit", async (e) => {
     const result = await parsePdf(file);
     summaryOut.value = result.summary || "";
     textOut.value = result.text || "";
+    if (!hasReadableSpeechText(result.text) || !hasReadableSpeechText(result.summary)) {
+      setStatus(AMHARIC_READ_ERROR, "error");
+      return;
+    }
 
     const meta = [
       result.pages ? `${result.pages} pages` : null,
@@ -395,8 +417,8 @@ playPremiumVoiceBtn?.addEventListener("click", async () => {
   }
 
   const text = String(summaryOut?.value || "").trim();
-  if (!text) {
-    setPremiumStatus("Generate or paste summary text first.", "error");
+  if (!hasReadableSpeechText(text)) {
+    setPremiumStatus(AMHARIC_READ_ERROR, "error");
     return;
   }
 
