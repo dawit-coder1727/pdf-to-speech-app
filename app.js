@@ -4,7 +4,6 @@ const express = require("express");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const multer = require("multer");
-const pdfParse = require("pdf-parse");
 const mongoose = require("mongoose"); // 
 const synthesizeRoutes = require("./routes/synthesizeRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
@@ -132,20 +131,31 @@ function hasReadableText(text) {
 }
 
 async function extractPdfText(buffer) {
-  const parsed = await pdfParse(buffer, {
-    max: 0,
-    pagerender: async (pageData) => {
-      const textContent = await pageData.getTextContent({ normalizeWhitespace: true });
-      const pageText = (textContent.items || [])
-        .map((item) => item.str || "")
-        .join(" ");
-      return `${pageText}\n`;
-    }
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const loadingTask = pdfjs.getDocument({
+    data: new Uint8Array(buffer),
+    useWorkerFetch: false,
+    isEvalSupported: false
   });
 
-  const mergedText = parsed.text || "";
+  const pdfDoc = await loadingTask.promise;
+  const pages = [];
+  for (let i = 1; i <= pdfDoc.numPages; i += 1) {
+    const page = await pdfDoc.getPage(i);
+    const textContent = await page.getTextContent({
+      disableCombineTextItems: false,
+      normalizeWhitespace: true
+    });
+
+    const pageText = (textContent.items || [])
+      .map((item) => item?.str || "")
+      .join(" ");
+    pages.push(pageText);
+  }
+
+  const mergedText = pages.join("\n");
   return {
-    parsed,
+    parsed: { numpages: pdfDoc.numPages },
     text: stripUnreadableArtifacts(normalizeAmharicText(cleanText(mergedText)))
   };
 }

@@ -47,6 +47,7 @@ let premiumUnlocked = localStorage.getItem(STORAGE_KEYS.premiumUnlocked) === "tr
 let freeUseCount = Number(localStorage.getItem(STORAGE_KEYS.freeUseCount) || "0");
 let isReading = false;
 let activeUtterance = null;
+let isSummaryReady = false;
 const AMHARIC_READ_ERROR = "አማርኛውን ማንበብ አልቻልኩም፣ እባክዎ ሌላ ፒዲኤፍ ይሞክሩ";
 
 function setStatus(msg, kind = "info") {
@@ -104,6 +105,10 @@ function stopSpeaking() {
 
 function speak(text) {
   stopSpeaking();
+  if (!isSummaryReady) {
+    setStatus("Please wait, summary is still generating...", "error");
+    return;
+  }
   const t = String(text || "").trim();
   if (!hasReadableSpeechText(t)) {
     setStatus(AMHARIC_READ_ERROR, "error");
@@ -329,6 +334,7 @@ uploadForm?.addEventListener("submit", async (e) => {
   }
 
   setStatus("Uploading and extracting…");
+  isSummaryReady = false;
   uploadBtn.disabled = true;
   uploadBtn.textContent = "Extracting...";
   stopSpeaking();
@@ -341,6 +347,7 @@ uploadForm?.addEventListener("submit", async (e) => {
       setStatus(AMHARIC_READ_ERROR, "error");
       return;
     }
+    isSummaryReady = true;
 
     const meta = [
       result.pages ? `${result.pages} pages` : null,
@@ -417,6 +424,10 @@ playPremiumVoiceBtn?.addEventListener("click", async () => {
   }
 
   const text = String(summaryOut?.value || "").trim();
+  if (!isSummaryReady) {
+    setPremiumStatus("Please wait, summary is still generating...", "error");
+    return;
+  }
   if (!hasReadableSpeechText(text)) {
     setPremiumStatus(AMHARIC_READ_ERROR, "error");
     return;
