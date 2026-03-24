@@ -103,7 +103,91 @@ function stopSpeaking() {
   } catch (_) {}
 }
 
-function speak(text) {
+/**
+ * Mobile Safari / Chrome often populate voices only after `voiceschanged` (async).
+ * Call from a user gesture; `getVoices()` is invoked synchronously first to help iOS.
+ */
+function waitForSpeechVoices(timeoutMs = 4000) {
+  const syn = window.speechSynthesis;
+  if (!syn || typeof syn.getVoices !== "function") return Promise.resolve([]);
+
+  try {
+    syn.getVoices();
+  } catch (_) {}
+
+  let voices = syn.getVoices();
+  if (voices.length) return Promise.resolve(voices);
+
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      syn.removeEventListener("voiceschanged", onVoicesChanged);
+      resolve(syn.getVoices());
+    };
+    const onVoicesChanged = () => {
+      if (syn.getVoices().length) finish();
+    };
+    syn.addEventListener("voiceschanged", onVoicesChanged);
+    setTimeout(finish, timeoutMs);
+  });
+}
+
+function normalizeVoiceLang(voice) {
+  return String(voice?.lang || "")
+    .toLowerCase()
+    .replace(/_/g, "-");
+}
+
+function isAmharicLangVoice(voice) {
+  const lang = normalizeVoiceLang(voice);
+  return lang === "am" || lang.startsWith("am-");
+}
+
+function getPreferredAmharicVoice(voices) {
+  const list = Array.isArray(voices) ? voices : window.speechSynthesis?.getVoices?.() || [];
+  if (!list.length) return null;
+
+  const nameLower = (v) => String(v?.name || "").toLowerCase();
+
+  const microsoftNaturalAm = list.find((v) => {
+    const n = nameLower(v);
+    if (!n.includes("microsoft")) return false;
+    const am = isAmharicLangVoice(v) || n.includes("amharic");
+    if (!am) return false;
+    return (
+      n.includes("natural") ||
+      n.includes("online") ||
+      n.includes("neural") ||
+      n.includes("abeo") ||
+      n.includes("asrat")
+    );
+  });
+  if (microsoftNaturalAm) return microsoftNaturalAm;
+
+  const preferredNames = ["Microsoft Abeo Online (Natural) - Amharic", "Microsoft Asrat"];
+  for (const preferred of preferredNames) {
+    const matched = list.find((voice) => String(voice.name || "").includes(preferred));
+    if (matched) return matched;
+  }
+
+  const byLang = list.find(isAmharicLangVoice);
+  if (byLang) return byLang;
+
+  return list.find((v) => nameLower(v).includes("amharic")) || null;
+}
+
+function attachAmharicVoice(utterance, voice) {
+  if (voice) {
+    utterance.voice = voice;
+    utterance.lang = voice.lang || "am-ET";
+  } else {
+    utterance.lang = "am-ET";
+  }
+}
+
+async function speakText(text) {
   stopSpeaking();
   if (!isSummaryReady) {
     setStatus("Please wait, summary is still generating...", "error");
@@ -119,13 +203,24 @@ function speak(text) {
     return;
   }
 
+  const syn = window.speechSynthesis;
+  const voices = await waitForSpeechVoices();
+  const voice = getPreferredAmharicVoice(voices);
+
   const utt = new SpeechSynthesisUtterance(t);
+  attachAmharicVoice(utt, voice);
   utt.rate = 1;
   utt.pitch = 1;
   utt.volume = 1;
 
-  window.speechSynthesis.speak(utt);
+  try {
+    if (syn.paused) syn.resume();
+  } catch (_) {}
+
+  syn.speak(utt);
 }
+
+const speak = speakText;
 
 function hasReadableSpeechText(text) {
   const normalized = String(text || "")
@@ -182,22 +277,7 @@ function hidePremiumModal() {
   premiumModal?.classList.remove("flex");
 }
 
-function getPreferredAmharicVoice() {
-  const voices = window.speechSynthesis?.getVoices?.() || [];
-  const preferredNames = [
-    "Microsoft Abeo Online (Natural) - Amharic",
-    "Microsoft Asrat"
-  ];
-
-  for (const preferred of preferredNames) {
-    const matched = voices.find((voice) => voice.name.includes(preferred));
-    if (matched) return matched;
-  }
-
-  return voices.find((voice) => voice.lang?.toLowerCase().startsWith("am")) || null;
-}
-
-function startReadingWithProgress(text) {
+async function startReadingWithProgress(text) {
   if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
     throw new Error("This browser does not support speech synthesis.");
   }
@@ -207,14 +287,12 @@ function startReadingWithProgress(text) {
     throw new Error(AMHARIC_READ_ERROR);
   }
 
+  const syn = window.speechSynthesis;
+  const voices = await waitForSpeechVoices();
+  const selectedVoice = getPreferredAmharicVoice(voices);
+
   const utterance = new SpeechSynthesisUtterance(content);
-  const selectedVoice = getPreferredAmharicVoice();
-  if (selectedVoice) {
-    utterance.voice = selectedVoice;
-    utterance.lang = selectedVoice.lang || "am-ET";
-  } else {
-    utterance.lang = "am-ET";
-  }
+  attachAmharicVoice(utterance, selectedVoice);
 
   utterance.rate = 0.9;
   utterance.pitch = 1;
@@ -255,8 +333,11 @@ function startReadingWithProgress(text) {
     setPremiumStatus("Playback failed. Try again.", "error");
   };
 
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
+  syn.cancel();
+  try {
+    if (syn.paused) syn.resume();
+  } catch (_) {}
+  syn.speak(utterance);
 }
 
 async function parsePdf(file) {
@@ -363,8 +444,8 @@ uploadForm?.addEventListener("submit", async (e) => {
   }
 });
 
-speakSummaryBtn?.addEventListener("click", () => speak(summaryOut.value));
-speakFullBtn?.addEventListener("click", () => speak(textOut.value));
+speakSummaryBtn?.addEventListener("click", () => void speakText(summaryOut.value));
+speakFullBtn?.addEventListener("click", () => void speakText(textOut.value));
 
 copySummaryBtn?.addEventListener("click", async () => {
   const ok = await copyText(summaryOut.value);
@@ -435,7 +516,7 @@ playPremiumVoiceBtn?.addEventListener("click", async () => {
 
   setPremiumStatus("Preparing natural Amharic voice...");
   try {
-    startReadingWithProgress(text);
+    await startReadingWithProgress(text);
     if (!premiumUnlocked) {
       freeUseCount += 1;
       persistFreemiumState();
